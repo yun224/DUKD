@@ -1,6 +1,8 @@
 # DUKD: Data Upcycling Knowledge Distillation for Image Super-Resolution
 
-This repository is the official PyTorch implementation of DUKD: Data Upcycling Knowledge Distillation for Image Super-Resolution.
+This repository is the official PyTorch implementation of [DUKD: Data Upcycling Knowledge Distillation for Image Super-Resolution](https://arxiv.org/abs/2309.14162).
+
+[![arXiv](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2309.14162)
 
 ---
 
@@ -95,4 +97,13 @@ Student models are periodically evaluateded on four testing sets during training
 
 ```bash
 python -c "__import__('basicsr').test.test_pipeline('./')" -opt options/test/test_RCAN_x4c64b6g10.yml
+```
+## Citations
+```
+@article{zhang2023data,
+  title={Data Upcycling Knowledge Distillation for Image Super-Resolution},
+  author={Zhang, Yun and Li, Wei and Li, Simiao and Chen, Hanting and Tu, Zhijun and Wang, Wenjia and Jing, Bingyi and Lin, Shaohui and Hu, Jie},
+  journal={arXiv preprint arXiv:2309.14162},
+  year={2023}
+}
 ```
