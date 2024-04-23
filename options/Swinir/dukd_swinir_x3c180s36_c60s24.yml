@@ -1,0 +1,167 @@
+name: DUKD_SwinIR_x3c180s36_c60s24
+model_type: DUKD
+scale: 3
+num_gpu: auto  # set num_gpu: 0 for cpu mode
+manual_seed: 10
+
+# dataset and data loader settings
+datasets:
+  train:
+    name: DIV2K
+    type: PairedImageDataset
+    dataroot_gt: /cache/SR/DIV2K/DIV2K_train_HR
+    dataroot_lq: /cache/SR/DIV2K/DIV2K_train_LR_bicubic/X3
+    filename_tmpl: '{}x3'
+    io_backend:
+      type: disk
+    gt_size: 144
+    use_hflip: true
+    use_rot: true
+
+    # data loader
+    num_worker_per_gpu: 6
+    batch_size_per_gpu: 16
+    dataset_enlarge_ratio: 100
+    prefetch_mode: ~
+
+  val:
+    name: Set5
+    type: PairedImageDataset
+    dataroot_gt: /cache/SR/test/Set5/HR
+    dataroot_lq: /cache/SR/test/Set5/LR_bicubic/X3
+    filename_tmpl: '{}x3'
+    io_backend:
+      type: disk
+  val_1:
+    name: Set14
+    type: PairedImageDataset
+    dataroot_gt: /cache/SR/test/Set14/HR
+    dataroot_lq: /cache/SR/test/Set14/LR_bicubic/X3
+    filename_tmpl: '{}x3'
+    io_backend:
+      type: disk
+  val_2:
+    name: BSDS100
+    type: PairedImageDataset
+    dataroot_gt: /cache/SR/test/BSDS100/HR
+    dataroot_lq: /cache/SR/test/BSDS100/LR_bicubic/X3
+    filename_tmpl: '{}x3'
+    io_backend:
+      type: disk
+  val_3:
+    name: Urban100
+    type: PairedImageDataset
+    dataroot_gt: /cache/SR/test/Urban100/HR
+    dataroot_lq: /cache/SR/test/Urban100/LR_bicubic/X3
+    filename_tmpl: '{}x3'
+    io_backend:
+      type: disk
+  val_4:
+    name: DIV2K_Val
+    type: PairedImageDataset
+    dataroot_gt: /cache/SR/test/DIV2K_Val/HR
+    dataroot_lq: /cache/SR/test/DIV2K_Val/LR_bicubic/X3
+    filename_tmpl: '{}x3'
+    io_backend:
+      type: disk
+# network structures
+network_g:
+  type: SwinIR
+  upscale: 3
+  in_chans: 3
+  img_size: 48
+  window_size: 8
+  img_range: 1.
+  embed_dim: 60
+  depths: [6, 6, 6, 6]
+  num_heads: [6, 6, 6, 6]
+  mlp_ratio: 2
+  upsampler: 'pixelshuffle'
+  resi_connection: '1conv'
+
+
+network_t:
+  type: SwinIR
+  upscale: 3
+  in_chans: 3
+  img_size: 48
+  window_size: 8
+  img_range: 1.
+  embed_dim: 180
+  depths: [6, 6, 6, 6, 6, 6]
+  num_heads: [6, 6, 6, 6, 6, 6]
+  mlp_ratio: 2
+  upsampler: 'pixelshuffle'
+  resi_connection: '1conv'
+
+
+# path
+path:
+  pretrain_network_g: ~
+  pretrain_network_t: pretrained_models/SwinIR/001_classicalSR_DIV2K_s48w8_SwinIR-M_x3.pth
+  strict_load_g: true
+  resume_state: ~
+
+# training settings
+train:
+  noisy:
+    prob: 0.3
+  dukd_opt:
+    n_gt_sub: [1]
+    zoom_out: false
+  ema_decay: 0.999
+  optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: MultiStepLR
+    milestones: [100000, 200000]
+    gamma: 0.1
+
+  total_iter: 250000
+  warmup_iter: -1  # no warm up
+
+  # losses
+  pixel_opt:
+    type: L1Loss
+    loss_weight: 5.0
+    reduction: mean
+  kd_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+
+
+# validation settings
+val:
+  val_freq: !!float 5e3
+  save_img: false
+  self_ensemble: false
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 3
+      test_y_channel: true
+    ssim:
+      type: calculate_ssim
+      crop_border: 3
+      test_y_channel: true
+
+
+# logging settings
+logger:
+  print_freq: 100
+  save_checkpoint_freq: !!float 5e3
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500

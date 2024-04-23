@@ -1,0 +1,162 @@
+name: DUKD_RCAN_x2c64b20g10_c64b6g10
+model_type: DUKD
+scale: 2
+num_gpu: auto  # set num_gpu: 0 for cpu mode
+manual_seed: 10
+
+# dataset and data loader settings
+datasets:
+  train:
+    name: DIV2K
+    type: PairedImageDataset
+    dataroot_gt: /cache/SR/DIV2K/DIV2K_train_HR
+    dataroot_lq: /cache/SR/DIV2K/DIV2K_train_LR_bicubic/X2
+    filename_tmpl: '{}x2'
+    io_backend:
+      type: disk
+    gt_size: 96
+    use_hflip: true
+    use_rot: true
+
+    # data loader
+    num_worker_per_gpu: 6
+    batch_size_per_gpu: 16
+    dataset_enlarge_ratio: 100
+    prefetch_mode: ~
+
+  val:
+    name: Set5
+    type: PairedImageDataset
+    dataroot_gt: /cache/SR/test/Set5/HR
+    dataroot_lq: /cache/SR/test/Set5/LR_bicubic/X2
+    filename_tmpl: '{}x2'
+    io_backend:
+      type: disk
+  val_1:
+    name: Set14
+    type: PairedImageDataset
+    dataroot_gt: /cache/SR/test/Set14/HR
+    dataroot_lq: /cache/SR/test/Set14/LR_bicubic/X2
+    filename_tmpl: '{}x2'
+    io_backend:
+      type: disk
+  val_2:
+    name: BSDS100
+    type: PairedImageDataset
+    dataroot_gt: /cache/SR/test/BSDS100/HR
+    dataroot_lq: /cache/SR/test/BSDS100/LR_bicubic/X2
+    filename_tmpl: '{}x2'
+    io_backend:
+      type: disk
+  val_3:
+    name: Urban100
+    type: PairedImageDataset
+    dataroot_gt: /cache/SR/test/Urban100/HR
+    dataroot_lq: /cache/SR/test/Urban100/LR_bicubic/X2
+    filename_tmpl: '{}x2'
+    io_backend:
+      type: disk
+  val_4:
+    name: DIV2K_Val
+    type: PairedImageDataset
+    dataroot_gt: /cache/SR/test/DIV2K_Val/HR
+    dataroot_lq: /cache/SR/test/DIV2K_Val/LR_bicubic/X2
+    filename_tmpl: '{}x2'
+    io_backend:
+      type: disk
+
+# network structures
+network_g:
+  type: RCAN
+  num_in_ch: 3
+  num_out_ch: 3
+  num_feat: 64
+  num_group: 10
+  num_block: 6
+  squeeze_factor: 16
+  upscale: 2
+  res_scale: 1
+  img_range: 255.
+  rgb_mean: [0.4488, 0.4371, 0.4040]
+
+network_t:
+  type: RCAN
+  num_in_ch: 3
+  num_out_ch: 3
+  num_feat: 64
+  num_group: 10
+  num_block: 20
+  squeeze_factor: 16
+  upscale: 2
+  res_scale: 1
+  img_range: 255.
+  rgb_mean: [0.4488, 0.4371, 0.4040]
+
+# path
+path:
+  pretrain_network_g: ~
+  pretrain_network_t: pretrained_models/RCAN/RCAN_x2c64b20g10.pth
+  strict_load_g: true
+  resume_state: ~
+
+# training settings
+train:
+  dukd_opt:
+    n_gt_sub: [1]
+    zoom_out: false
+  ema_decay: 0.999
+  optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: MultiStepLR
+    milestones: [100000, 200000]
+    gamma: 0.1
+
+  total_iter: 250000
+  warmup_iter: -1  # no warm up
+
+  # losses
+  pixel_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+  kd_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+
+
+# validation settings
+val:
+  val_freq: !!float 5e3
+  save_img: false
+  self_ensemble: false
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 2
+      test_y_channel: true
+    ssim:
+      type: calculate_ssim
+      crop_border: 2
+      test_y_channel: true
+
+
+# logging settings
+logger:
+  print_freq: 100
+  save_checkpoint_freq: !!float 5e3
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500
